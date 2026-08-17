@@ -3,13 +3,13 @@
     "name": "SNYPE Stat",
     "slug": "snypestat",
     "scheme": "snypestat",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "default",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon/snype-stat-icon-v1.png",
     "android": {
       "package": "ai.neuropuck.snypestat",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/snype-stat-icon-v1.png",
         "backgroundColor": "#071018"

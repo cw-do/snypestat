@@ -101,7 +101,7 @@ export function LiveGameScreen(props: Props) {
   };
 
   if (game.cameraSettings.enabled) return <>
-    <CameraShiftMode game={game} player={player} now={now} onExit={() => props.onCameraSettings({ enabled: false })} onToggleClock={props.onToggleClock} onStartShift={props.onCameraStartShift} onEndShift={props.onCameraEndShift} onAttachVideo={props.onAttachShiftVideo} onRecordingFailed={props.onRecordingFailed} onSettings={props.onCameraSettings} onEvent={event} onUndo={props.onUndo} onPenalty={openPenalty} />
+    <CameraShiftMode game={game} player={player} now={now} onExit={() => props.onCameraSettings({ enabled: false })} onToggleClock={props.onToggleClock} onSelectPeriod={props.onSelectPeriod} onStartShift={props.onCameraStartShift} onEndShift={props.onCameraEndShift} onAttachVideo={props.onAttachShiftVideo} onRecordingFailed={props.onRecordingFailed} onSettings={props.onCameraSettings} onEvent={event} onUndo={props.onUndo} onPenalty={openPenalty} />
     <PenaltyModal visible={penaltyOpen} minorSeconds={game.minorPenaltySeconds} onCancel={() => { setPenaltyOpen(false); setPenaltyContext(null); }} onSubmit={submitPenalty} />
   </>;
 

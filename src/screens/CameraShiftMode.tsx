@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -25,6 +25,7 @@ type Props = {
   now: number;
   onExit: () => void;
   onToggleClock: () => void;
+  onSelectPeriod: (period: number) => void;
   onStartShift: (shiftId: string, startedAt: number) => void;
   onEndShift: (endedAt: number) => void;
   onAttachVideo: (shiftId: string, video: ShiftVideo) => void;
@@ -51,6 +52,12 @@ const RIGHT_EVENTS: Array<{ type: EventType; label: string }> = [
   { type: 'BLOCK', label: 'BLK' }, { type: 'TAKEAWAY', label: 'TK' }, { type: 'GIVEAWAY', label: 'GV' }
 ];
 
+const ZOOM_PRESETS = [
+  { label: '1×', value: 0 },
+  { label: '3×', value: 0.35 },
+  { label: '5×', value: 0.65 }
+] as const;
+
 export function CameraShiftMode(props: Props) {
   useKeepAwake('camera-shift-mode');
   const insets = useSafeAreaInsets();
@@ -63,11 +70,20 @@ export function CameraShiftMode(props: Props) {
   const [recording, setRecording] = useState(false);
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  const [cameraZoom, setCameraZoom] = useState(props.game.cameraSettings.zoom);
+  const zoomRef = useRef(props.game.cameraSettings.zoom);
+  const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
   const activeShift = props.game.shifts.find((shift) => shift.endTimestamp == null) ?? null;
   const trackingShift = Boolean(activeShift || recording);
   const clock = effectiveClock(props.game, props.now);
   const settings = props.game.cameraSettings;
   const audioAvailable = settings.audioEnabled && microphonePermission?.granted === true;
+
+  useEffect(() => {
+    if (pinchRef.current) return;
+    zoomRef.current = settings.zoom;
+    setCameraZoom(settings.zoom);
+  }, [settings.zoom]);
 
   useEffect(() => {
     void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => undefined);
@@ -151,6 +167,12 @@ export function CameraShiftMode(props: Props) {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
   };
 
+  const selectPeriod = (period: number) => {
+    if (period === props.game.currentPeriod || saving) return;
+    if (activeShift || recordingRef.current) endShift();
+    props.onSelectPeriod(period);
+  };
+
   const event = (type: EventType) => {
     props.onEvent(type);
     setFlash(type.replace('_', ' '));
@@ -171,7 +193,40 @@ export function CameraShiftMode(props: Props) {
     props.onPenalty(context);
   };
 
-  const setZoom = (next: number) => props.onSettings({ zoom: Math.max(0, Math.min(1, Number(next.toFixed(2)))) });
+  const setZoom = (next: number, persist = true) => {
+    const zoom = Math.max(0, Math.min(1, Number(next.toFixed(3))));
+    zoomRef.current = zoom;
+    setCameraZoom(zoom);
+    if (persist) props.onSettings({ zoom });
+  };
+
+  const touchDistance = (event: GestureResponderEvent) => {
+    const touches = event.nativeEvent.touches;
+    if (touches.length < 2) return null;
+    return Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY);
+  };
+
+  const beginPinch = (event: GestureResponderEvent) => {
+    const distance = touchDistance(event);
+    if (distance != null) pinchRef.current = { distance, zoom: zoomRef.current };
+  };
+
+  const movePinch = (event: GestureResponderEvent) => {
+    const distance = touchDistance(event);
+    if (distance == null) return;
+    if (!pinchRef.current) {
+      pinchRef.current = { distance, zoom: zoomRef.current };
+      return;
+    }
+    const scale = Math.max(0.25, distance / Math.max(1, pinchRef.current.distance));
+    setZoom(pinchRef.current.zoom + Math.log2(scale) * 0.24, false);
+  };
+
+  const endPinch = () => {
+    if (!pinchRef.current) return;
+    pinchRef.current = null;
+    props.onSettings({ zoom: zoomRef.current });
+  };
 
   if (!cameraPermission?.granted) {
     return <View style={styles.permission}><Text style={styles.permissionKicker}>CAMERA SHIFT MODE</Text><Text style={styles.permissionTitle}>Record only the shifts that matter.</Text><Text style={styles.permissionCopy}>Camera access records the rear-camera view. Microphone access is optional and only adds rink audio.</Text><Pressable onPress={() => void grantAccess()} style={styles.permissionButton}><Text style={styles.permissionButtonText}>ALLOW CAMERA ACCESS</Text></Pressable><Pressable onPress={props.onExit} style={styles.continueButton}><Text style={styles.continueText}>CONTINUE WITHOUT CAMERA</Text></Pressable></View>;
@@ -179,13 +234,27 @@ export function CameraShiftMode(props: Props) {
 
   return (
     <View style={styles.root}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" mode="video" mute={!audioAvailable} ratio={settings.ratio} videoQuality={settings.ratio === '4:3' ? '4:3' : '720p'} videoStabilizationMode="auto" zoom={settings.zoom} onCameraReady={() => { setCameraReady(true); setCameraError(null); }} onMountError={(error) => setCameraError(error.message)} />
+      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" mode="video" mute={!audioAvailable} ratio={settings.ratio} videoQuality={settings.ratio === '4:3' ? '4:3' : '720p'} videoStabilizationMode="auto" zoom={cameraZoom} onCameraReady={() => { setCameraReady(true); setCameraError(null); }} onMountError={(error) => setCameraError(error.message)} />
+      <View
+        style={styles.pinchSurface}
+        onMoveShouldSetResponder={(event) => event.nativeEvent.touches.length >= 2}
+        onResponderGrant={beginPinch}
+        onResponderMove={movePinch}
+        onResponderRelease={endPinch}
+        onResponderTerminate={endPinch}
+        onResponderTerminationRequest={() => false}
+      >
+        <Text style={styles.pinchHint}>PINCH TO ZOOM</Text>
+      </View>
       <View style={[styles.top, { paddingTop: Math.max(insets.top, spacing.sm), paddingLeft: Math.max(insets.left, spacing.md), paddingRight: Math.max(insets.right, spacing.md) }]}>
-        <Pressable onPress={props.onToggleClock} style={styles.statusPill}><Text style={styles.period}>P{props.game.currentPeriod}</Text><Text style={styles.clock}>{formatClock(clock)}</Text><View style={[styles.clockDot, { backgroundColor: props.game.clockRunning ? colors.green : colors.amber }]} /></Pressable>
+        <Pressable onPress={props.onToggleClock} style={styles.statusPill}><Text style={styles.clock}>{formatClock(clock)}</Text><View style={[styles.clockDot, { backgroundColor: props.game.clockRunning ? colors.green : colors.amber }]} /></Pressable>
+        <View style={styles.periodRow}>{Array.from({ length: props.game.periodCount }, (_, index) => index + 1).map((period) => <Pressable key={period} disabled={saving} onPress={() => selectPeriod(period)} style={[styles.periodChoice, props.game.currentPeriod === period && styles.periodChoiceActive, saving && { opacity: 0.4 }]}><Text style={[styles.periodChoiceText, props.game.currentPeriod === period && styles.periodChoiceTextActive]}>P{period}</Text></Pressable>)}</View>
         <View style={styles.recordPill}><View style={[styles.recordDot, recording && { backgroundColor: colors.red }]} /><Text style={styles.recordText}>{recording ? `REC ${activeShift ? formatClock(effectiveShiftDuration(activeShift, props.now)) : '00:00'}` : activeShift ? 'SHIFT · NO VIDEO' : 'READY'}</Text></View>
         <View style={styles.settingRow}>
           {(['16:9', '4:3'] as const).map((ratio) => <Pressable key={ratio} disabled={trackingShift || saving} onPress={() => props.onSettings({ ratio })} style={[styles.mini, settings.ratio === ratio && styles.miniActive, (trackingShift || saving) && { opacity: 0.45 }]}><Text style={[styles.miniText, settings.ratio === ratio && styles.miniTextActive]}>{ratio}</Text></Pressable>)}
-          <Pressable onPress={() => setZoom(settings.zoom - 0.05)} style={styles.zoomStep}><Text style={styles.zoomStepText}>−</Text></Pressable><Text style={styles.zoomText}>ZOOM {Math.round(settings.zoom * 100)}%</Text><Pressable onPress={() => setZoom(settings.zoom + 0.05)} style={styles.zoomStep}><Text style={styles.zoomStepText}>+</Text></Pressable>
+          <Pressable onPress={() => setZoom(cameraZoom - 0.08)} style={styles.zoomStep}><Text style={styles.zoomStepText}>−</Text></Pressable>
+          {ZOOM_PRESETS.map((preset) => <Pressable key={preset.label} onPress={() => setZoom(preset.value)} style={[styles.zoomPreset, Math.abs(cameraZoom - preset.value) < 0.025 && styles.zoomPresetActive]}><Text style={[styles.zoomPresetText, Math.abs(cameraZoom - preset.value) < 0.025 && styles.zoomPresetTextActive]}>{preset.label}</Text></Pressable>)}
+          <Pressable onPress={() => setZoom(cameraZoom + 0.08)} style={styles.zoomStep}><Text style={styles.zoomStepText}>+</Text></Pressable>
           <Pressable disabled={trackingShift || saving} onPress={props.onExit} style={[styles.exit, (trackingShift || saving) && { opacity: 0.4 }]}><Text style={styles.exitText}>EXIT CAMERA</Text></Pressable>
         </View>
       </View>
@@ -226,9 +295,13 @@ const styles = StyleSheet.create({
   continueText: { color: colors.muted, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   top: { position: 'absolute', top: 0, left: 0, right: 0, minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: 'rgba(2,8,12,0.58)', paddingBottom: spacing.sm },
   statusPill: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: glass, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  period: { color: colors.blue, fontSize: 12, fontWeight: '900' },
   clock: { color: colors.ice, fontSize: 23, fontWeight: '900', fontVariant: ['tabular-nums'] },
   clockDot: { width: 7, height: 7, borderRadius: 4 },
+  periodRow: { flexDirection: 'row', gap: 4 },
+  periodChoice: { minWidth: 34, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: glass },
+  periodChoiceActive: { borderColor: colors.blue, backgroundColor: 'rgba(10,70,92,0.9)' },
+  periodChoiceText: { color: colors.muted, fontSize: 9, fontWeight: '900' },
+  periodChoiceTextActive: { color: colors.blue },
   recordPill: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: glass },
   recordDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.mutedDim },
   recordText: { color: colors.ice, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
@@ -239,11 +312,16 @@ const styles = StyleSheet.create({
   miniTextActive: { color: colors.blue },
   zoomStep: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm, backgroundColor: glass },
   zoomStepText: { color: colors.ice, fontSize: 21, fontWeight: '900' },
-  zoomText: { color: colors.ice, width: 70, textAlign: 'center', fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
+  zoomPreset: { minWidth: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: glass, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
+  zoomPresetActive: { borderColor: colors.ice, backgroundColor: 'rgba(234,248,252,0.9)' },
+  zoomPresetText: { color: colors.ice, fontSize: 9, fontWeight: '900' },
+  zoomPresetTextActive: { color: colors.ink },
   exit: { height: 36, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.sm, backgroundColor: glass, borderWidth: 1, borderColor: colors.line },
   exitText: { color: colors.ice, fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
   leftRail: { position: 'absolute', top: '26%', gap: spacing.sm },
   rightRail: { position: 'absolute', top: '26%', gap: spacing.sm },
+  pinchSurface: { position: 'absolute', top: 76, bottom: 92, left: 96, right: 96, alignItems: 'center', justifyContent: 'center' },
+  pinchHint: { color: 'rgba(255,255,255,0.42)', fontSize: 8, fontWeight: '900', letterSpacing: 1.2, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: 'rgba(3,12,19,0.32)' },
   statButton: { width: 72, minHeight: 56, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: glass, borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)' },
   statText: { color: colors.white, fontSize: 12, fontWeight: '900', letterSpacing: 1 },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, minHeight: 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, backgroundColor: 'rgba(2,8,12,0.58)', paddingTop: spacing.sm },
