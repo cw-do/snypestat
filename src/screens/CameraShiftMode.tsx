@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, BackHandler, GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -78,6 +78,18 @@ export function CameraShiftMode(props: Props) {
   const clock = effectiveClock(props.game, props.now);
   const settings = props.game.cameraSettings;
   const audioAvailable = settings.audioEnabled && microphonePermission?.granted === true;
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (trackingShift || saving) {
+        Alert.alert('Recording in progress', 'End the current shift and wait for the video to save before leaving Camera Shift Mode.');
+        return true;
+      }
+      props.onExit();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [saving, trackingShift, props.onExit]);
 
   useEffect(() => {
     if (pinchRef.current) return;

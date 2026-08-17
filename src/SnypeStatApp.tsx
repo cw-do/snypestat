@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, StyleSheet, View } from 'react-native';
 import { NeuroPuckBrand } from './components/NeuroPuckBrand';
 import { colors } from './design/tokens';
 import { EMPTY_DATA, loadData, saveData } from './data/storage';
@@ -44,6 +44,22 @@ export function SnypeStatApp() {
   }, []);
   const activeId = route.name === 'live' || route.name === 'summary' || route.name === 'review' ? route.gameId : null;
   const activeGame = useMemo(() => activeId ? data.games.find((game) => game.id === activeId) ?? null : null, [activeId, data.games]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!loaded || !data.player || route.name === 'home') return false;
+      if (route.name === 'live' && activeGame?.cameraSettings.enabled) return false;
+      if (route.name === 'review') {
+        setRoute(route.returnTo === 'live'
+          ? { name: 'live', gameId: route.gameId }
+          : { name: 'summary', gameId: route.gameId });
+        return true;
+      }
+      setRoute({ name: 'home' });
+      return true;
+    });
+    return () => subscription.remove();
+  }, [activeGame?.cameraSettings.enabled, data.player, loaded, route]);
 
   if (!loaded) return <View style={styles.loading}><NeuroPuckBrand productLine /><ActivityIndicator color={colors.blue} size="small" /></View>;
   if (!data.player) return <PlayerSetupScreen onSave={(player: Player) => setData((current) => ({ ...current, player }))} />;
