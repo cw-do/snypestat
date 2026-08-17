@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppData } from '../domain/models';
+import { AppData, DEFAULT_CAMERA_SETTINGS } from '../domain/models';
 
 const STORAGE_KEY = '@snypestat/data/v1';
 export const EMPTY_DATA: AppData = { player: null, games: [], activeGameId: null };
@@ -16,7 +16,11 @@ export async function loadData(): Promise<AppData> {
             ...game,
             tournamentName: game.tournamentName ?? '',
             periodClockSeconds: game.periodClockSeconds ?? { [game.currentPeriod]: game.clockSeconds },
-            events: game.events.map((event) => ({ ...event, source: event.source ?? 'live' }))
+            cameraSettings: { ...DEFAULT_CAMERA_SETTINGS, ...(game.cameraSettings ?? {}) },
+            minorPenaltySeconds: game.minorPenaltySeconds ?? 120,
+            penalties: Array.isArray(game.penalties) ? game.penalties.map((penalty) => ({ ...penalty, videoOffsetMs: penalty.videoOffsetMs ?? null })) : [],
+            shifts: game.shifts.map((shift) => ({ ...shift, videoRecordingStartedAt: shift.videoRecordingStartedAt ?? shift.video?.startedAt ?? null, video: shift.video ?? null })),
+            events: game.events.map((event) => ({ ...event, source: event.source ?? 'live', videoOffsetMs: event.videoOffsetMs ?? null }))
           }))
         : [],
       activeGameId: parsed.activeGameId ?? null

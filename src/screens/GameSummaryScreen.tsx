@@ -22,7 +22,7 @@ export function GameSummaryScreen({ game, player, onDone, onReview }: { game: Ga
       <View style={styles.periodRow}>{periodToi.map((seconds, index) => <View key={index} style={styles.period}><Text style={styles.periodLabel}>P{index + 1}</Text><Text style={styles.periodValue}>{formatClock(seconds)}</Text></View>)}</View>
       <Text style={styles.section}>GAME EVENTS</Text>
       <Card style={styles.statsGrid}>
-        <Stat label="G" value={stats.goals} /><Stat label="A" value={stats.assists} /><Stat label="TP" value={stats.points} /><Stat label="SOG" value={stats.shots} /><Stat label="BLK" value={stats.blocks} /><Stat label="TK" value={stats.takeaways} /><Stat label="GV" value={stats.giveaways} /><Stat label="PLUS / MINUS" value={stats.plusMinus > 0 ? `+${stats.plusMinus}` : stats.plusMinus} accent={stats.plusMinus >= 0 ? colors.green : colors.red} />
+        <Stat label="G" value={stats.goals} /><Stat label="A" value={stats.assists} /><Stat label="TP" value={stats.points} /><Stat label="SOG" value={stats.shots} /><Stat label="BLK" value={stats.blocks} /><Stat label="TK" value={stats.takeaways} /><Stat label="GV" value={stats.giveaways} /><Stat label="PLUS / MINUS" value={stats.plusMinus > 0 ? `+${stats.plusMinus}` : stats.plusMinus} accent={stats.plusMinus >= 0 ? colors.green : colors.red} /><Stat label="PIM" value={formatClock(stats.penaltySeconds)} accent={stats.penaltySeconds ? colors.red : colors.ice} /><Stat label="SHIFT FILM" value={`${stats.recordedShifts} / ${stats.shiftCount}`} accent={stats.recordedShifts ? colors.blue : colors.muted} />
       </Card>
       <ActionButton label="REVIEW & EDIT STATS" tone="ghost" onPress={onReview} />
       <ActionButton label="BACK TO HOME" onPress={onDone} />

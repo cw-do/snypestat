@@ -30,6 +30,23 @@ Then scan the QR code or press `a` to open an available Android emulator.
 
 All app data is stored locally with AsyncStorage. Game clock values are stored as integer seconds; shifts and events retain game-clock and wall-clock context.
 
+## Camera Shift Mode
+
+Camera Shift Mode keeps the rear-camera preview visible behind large, translucent live controls.
+
+- `START SHIFT + RECORD` starts shift timing and a rear-camera recording together.
+- `END SHIFT` closes the shift immediately, then saves the video into app document storage.
+- Events recorded during a filmed shift keep a video offset for one-tap review bookmarks.
+- Native recording choices are `16:9 / 720p` and `4:3`; zoom stays within the device-supported normalized range.
+- Camera, microphone, file saving, and video playback failures never discard shift or stat data.
+- The app remains fully usable in Standard Mode without camera permissions.
+
+Shift videos are local to the device and are not uploaded or synchronized.
+
+## Penalty minutes
+
+Games have a configurable default minor penalty of `1:30` or `2:00`. Live penalty presets include minor, double minor, major, misconduct, game misconduct, and major plus game misconduct. Review/Edit supports PIM correction in 30-second steps. PIM stores the official assessed duration rather than inferred time away from play.
+
 ## Checks
 
 ```powershell

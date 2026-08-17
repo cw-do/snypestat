@@ -39,7 +39,9 @@ export function summarizeGame(game: Game, now = Date.now()) {
     blocks: eventCount(game, 'BLOCK'),
     takeaways: eventCount(game, 'TAKEAWAY'),
     giveaways: eventCount(game, 'GIVEAWAY'),
-    plusMinus: eventCount(game, 'PLUS') - eventCount(game, 'MINUS')
+    plusMinus: eventCount(game, 'PLUS') - eventCount(game, 'MINUS'),
+    penaltySeconds: game.penalties.reduce((sum, penalty) => sum + penalty.assessedSeconds, 0),
+    recordedShifts: game.shifts.filter((shift) => shift.video != null).length
   };
 }
 

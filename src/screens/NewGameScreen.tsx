@@ -6,7 +6,7 @@ import { colors, radius, spacing, tracking } from '../design/tokens';
 import { Game, HomeAway } from '../domain/models';
 import { suggestNearestIceRink } from '../services/nearbyRink';
 
-export type NewGameInput = Pick<Game, 'opponent' | 'date' | 'homeAway' | 'location' | 'tournamentName' | 'periodLengthSeconds' | 'periodCount'>;
+export type NewGameInput = Pick<Game, 'opponent' | 'date' | 'homeAway' | 'location' | 'tournamentName' | 'periodLengthSeconds' | 'periodCount' | 'minorPenaltySeconds'>;
 
 export function NewGameScreen({ onBack, onStart, suggestedTournament = '', previousOpponents = [] }: { onBack: () => void; onStart: (input: NewGameInput) => void; suggestedTournament?: string; previousOpponents?: string[] }) {
   const insets = useSafeAreaInsets();
@@ -16,6 +16,7 @@ export function NewGameScreen({ onBack, onStart, suggestedTournament = '', previ
   const [homeAway, setHomeAway] = useState<HomeAway>('home');
   const [periodLength, setPeriodLength] = useState(15);
   const [periodCount, setPeriodCount] = useState(3);
+  const [minorPenaltySeconds, setMinorPenaltySeconds] = useState(120);
   const [rinkStatus, setRinkStatus] = useState<'idle' | 'locating' | 'suggested' | 'denied' | 'unavailable'>('idle');
   const locationEdited = useRef(false);
   const lookupInFlight = useRef(false);
@@ -70,9 +71,10 @@ export function NewGameScreen({ onBack, onStart, suggestedTournament = '', previ
         <Card style={{ gap: spacing.lg }}>
           <View><Text style={styles.label}>PERIOD LENGTH</Text><View style={styles.segments}>{[12, 15, 20].map((value) => <Choice key={value} label={`${value}:00`} active={periodLength === value} onPress={() => setPeriodLength(value)} />)}</View></View>
           <View><Text style={styles.label}>PERIODS</Text><View style={styles.segments}>{[2, 3, 4].map((value) => <Choice key={value} label={String(value)} active={periodCount === value} onPress={() => setPeriodCount(value)} />)}</View></View>
+          <View><Text style={styles.label}>DEFAULT MINOR PENALTY</Text><View style={styles.segments}>{[90, 120].map((value) => <Choice key={value} label={value === 90 ? '1:30' : '2:00'} active={minorPenaltySeconds === value} onPress={() => setMinorPenaltySeconds(value)} />)}</View></View>
         </Card>
         <View style={styles.noteRow}><Text style={styles.noteLabel}>DATE</Text><Text style={styles.noteValue}>{today}</Text><View style={styles.dot} /><Text style={styles.noteLabel}>COUNTDOWN CLOCK</Text></View>
-        <ActionButton label="START GAME" onPress={() => onStart({ opponent: opponent.trim() || 'Opponent', date: today, homeAway, location: location.trim(), tournamentName: tournamentName.trim(), periodLengthSeconds: periodLength * 60, periodCount })} style={{ minHeight: 72 }} />
+        <ActionButton label="START GAME" onPress={() => onStart({ opponent: opponent.trim() || 'Opponent', date: today, homeAway, location: location.trim(), tournamentName: tournamentName.trim(), periodLengthSeconds: periodLength * 60, periodCount, minorPenaltySeconds })} style={{ minHeight: 72 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -11,25 +11,20 @@ const TERMS = [
   ['TK · Takeaways', 'The player causes the opponent to lose possession and the player’s team gains control.'],
   ['GV · Giveaways', 'The player’s pass or play gives possession of the puck to the opponent.'],
   ['+ / − · Plus/Minus', 'Record + for a team goal and − for an opponent goal while the player is on the ice.'],
-  ['TOI · Time on Ice', 'The player’s total on-ice time, calculated automatically from completed shifts.']
+  ['PIM · Penalty Minutes', 'Official assessed penalty time. It is not necessarily the exact time the player misses.'],
+  ['TOI · Time on Ice', 'The player’s total on-ice time, calculated automatically from completed shifts.'],
+  ['SHIFT FILM', 'Rear-camera video recorded from START SHIFT until END SHIFT and linked to that shift.']
 ];
 
 export function StatGuideModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.wrap} pointerEvents="box-none">
-        <View style={styles.sheet}>
-          <View style={styles.head}>
-            <View><Text style={styles.kicker}>HOCKEY STAT GUIDE</Text><Text style={styles.title}>What do these mean?</Text></View>
-            <Pressable onPress={onClose} hitSlop={12}><Text style={styles.close}>×</Text></Pressable>
-          </View>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {TERMS.map(([term, definition]) => <View key={term} style={styles.term}><Text style={styles.termName}>{term}</Text><Text style={styles.definition}>{definition}</Text></View>)}
-          </ScrollView>
-          <Pressable onPress={onClose} style={styles.done}><Text style={styles.doneText}>GOT IT</Text></Pressable>
-        </View>
-      </View>
+      <View style={styles.wrap} pointerEvents="box-none"><View style={styles.sheet}>
+        <View style={styles.head}><View><Text style={styles.kicker}>HOCKEY STAT GUIDE</Text><Text style={styles.title}>What do these mean?</Text></View><Pressable onPress={onClose} hitSlop={12}><Text style={styles.close}>×</Text></Pressable></View>
+        <ScrollView showsVerticalScrollIndicator={false}>{TERMS.map(([term, definition]) => <View key={term} style={styles.term}><Text style={styles.termName}>{term}</Text><Text style={styles.definition}>{definition}</Text></View>)}</ScrollView>
+        <Pressable onPress={onClose} style={styles.done}><Text style={styles.doneText}>GOT IT</Text></Pressable>
+      </View></View>
     </Modal>
   );
 }

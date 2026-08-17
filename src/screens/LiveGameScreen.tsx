@@ -4,9 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { ActionButton } from '../components/ui';
 import { StatGuideModal } from '../components/StatGuideModal';
+import { PenaltyModal } from '../components/PenaltyModal';
 import { colors, radius, spacing, tracking } from '../design/tokens';
-import { EventType, Game, Player } from '../domain/models';
+import { CameraSettings, EventType, Game, GamePenalty, PenaltyType, Player, ShiftVideo } from '../domain/models';
 import { effectiveClock, effectiveShiftDuration, formatClock, summarizeGame } from '../domain/stats';
+import { CameraShiftMode, LivePenaltyContext } from './CameraShiftMode';
 
 type Props = {
   game: Game;
@@ -16,6 +18,12 @@ type Props = {
   onSelectPeriod: (period: number) => void;
   onEndPeriod: () => void;
   onToggleShift: () => void;
+  onCameraStartShift: (shiftId: string, startedAt: number) => void;
+  onCameraEndShift: (endedAt: number) => void;
+  onAttachShiftVideo: (shiftId: string, video: ShiftVideo) => void;
+  onRecordingFailed: (shiftId: string) => void;
+  onCameraSettings: (settings: Partial<CameraSettings>) => void;
+  onPenalty: (penalty: Omit<GamePenalty, 'id'>) => void;
   onEvent: (type: EventType) => void;
   onUndo: () => void;
   onReview: () => void;
@@ -35,6 +43,8 @@ export function LiveGameScreen(props: Props) {
   const [now, setNow] = useState(Date.now());
   const [flash, setFlash] = useState<EventType | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [penaltyOpen, setPenaltyOpen] = useState(false);
+  const [penaltyContext, setPenaltyContext] = useState<LivePenaltyContext | null>(null);
   const lastTap = useRef<{ type: EventType; at: number } | null>(null);
   const activeShift = game.shifts.find((shift) => shift.endTimestamp == null) ?? null;
   const clock = effectiveClock(game, now);
@@ -68,6 +78,33 @@ export function LiveGameScreen(props: Props) {
     ? Alert.alert(`End Period ${game.currentPeriod} and finish the game?`, 'The clock will move to 00:00, the active shift will close, and the game summary will be created.', [{ text: 'Keep tracking', style: 'cancel' }, { text: 'End game', style: 'destructive', onPress: () => props.onFinish(true) }])
     : Alert.alert(`End Period ${game.currentPeriod}?`, 'The clock will move to 00:00 and any active shift will close.', [{ text: 'Cancel', style: 'cancel' }, { text: 'End period', style: 'destructive', onPress: props.onEndPeriod }]);
 
+  const openPenalty = (context?: LivePenaltyContext) => {
+    const timestamp = Date.now();
+    const captured = context ?? {
+      period: game.currentPeriod,
+      gameSeconds: effectiveClock(game, timestamp),
+      shiftId: activeShift?.id ?? null,
+      timestamp,
+      source: 'live' as const,
+      videoOffsetMs: null
+    };
+    if (!context && activeShift) props.onToggleShift();
+    setPenaltyContext(captured);
+    setPenaltyOpen(true);
+  };
+
+  const submitPenalty = (type: PenaltyType, assessedSeconds: number, ejected: boolean) => {
+    if (!penaltyContext) return;
+    props.onPenalty({ ...penaltyContext, type, assessedSeconds, ejected });
+    setPenaltyOpen(false);
+    setPenaltyContext(null);
+  };
+
+  if (game.cameraSettings.enabled) return <>
+    <CameraShiftMode game={game} player={player} now={now} onExit={() => props.onCameraSettings({ enabled: false })} onToggleClock={props.onToggleClock} onStartShift={props.onCameraStartShift} onEndShift={props.onCameraEndShift} onAttachVideo={props.onAttachShiftVideo} onRecordingFailed={props.onRecordingFailed} onSettings={props.onCameraSettings} onEvent={event} onUndo={props.onUndo} onPenalty={openPenalty} />
+    <PenaltyModal visible={penaltyOpen} minorSeconds={game.minorPenaltySeconds} onCancel={() => { setPenaltyOpen(false); setPenaltyContext(null); }} onSubmit={submitPenalty} />
+  </>;
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}> 
       <View style={styles.topbar}>
@@ -79,6 +116,7 @@ export function LiveGameScreen(props: Props) {
           {Array.from({ length: game.periodCount }, (_, index) => index + 1).map((period) => <Pressable key={period} onPress={() => props.onSelectPeriod(period)} style={[styles.periodChoice, game.currentPeriod === period && styles.periodChoiceActive]}><Text style={[styles.periodChoiceText, game.currentPeriod === period && styles.periodChoiceTextActive]}>P{period}</Text></Pressable>)}
           <Pressable onPress={confirmEndPeriod} style={[styles.endPeriod, isFinalPeriod && styles.endFinal]}><Text style={styles.endPeriodText}>{isFinalPeriod ? 'END GAME' : 'END PERIOD'}</Text></Pressable>
         </View>
+        <Pressable disabled={Boolean(activeShift)} onPress={() => props.onCameraSettings({ enabled: true })} style={[styles.cameraMode, activeShift && { opacity: 0.4 }]}><View style={styles.cameraIcon}><View style={styles.cameraLens} /></View><View style={{ flex: 1 }}><Text style={styles.cameraTitle}>CAMERA SHIFT MODE</Text><Text style={styles.cameraCopy}>{activeShift ? 'End the current shift before opening the camera.' : 'START SHIFT will record rear-camera video.'}</Text></View><Text style={styles.cameraOpen}>OPEN →</Text></Pressable>
         <Pressable onPress={props.onToggleClock} style={styles.clockArea}>
           <Text style={styles.clock}>{formatClock(clock)}</Text>
           <View style={styles.clockControl}><View style={[styles.clockDot, { backgroundColor: game.clockRunning && clock > 0 ? colors.green : colors.amber }]} /><Text style={styles.clockControlText}>{game.clockRunning && clock > 0 ? 'CLOCK RUNNING · TAP TO PAUSE' : 'CLOCK PAUSED · TAP TO START'}</Text></View>
@@ -89,12 +127,13 @@ export function LiveGameScreen(props: Props) {
           <View style={{ alignItems: 'flex-end' }}><Text style={styles.shiftLabel}>{activeShift ? `SHIFT ${game.shifts.length}` : `${game.shifts.length} SHIFTS`}</Text><Text style={[styles.shiftTime, activeShift && { color: colors.green }]}>{activeShift ? formatClock(effectiveShiftDuration(activeShift, now)) : formatClock(stats.totalToi)}</Text></View>
         </View>
 
-        {activeShift ? <View style={styles.eventGrid}>{EVENTS.map(({ type, label, tone }) => (
+        {activeShift ? <><View style={styles.eventGrid}>{EVENTS.map(({ type, label, tone }) => (
           <Pressable key={type} onPress={() => event(type)} style={({ pressed }) => [styles.eventButton, tone === 'good' && styles.eventGood, tone === 'bad' && styles.eventBad, pressed && { transform: [{ scale: 0.97 }] }]}>
             <Text style={[styles.eventText, (type === 'PLUS' || type === 'MINUS') && styles.eventSymbol]}>{label}</Text>
             <Text style={styles.eventCount}>{game.events.filter((item) => item.type === type).length}</Text>
           </Pressable>
-        ))}</View> : <View style={styles.benchMessage}><Text style={styles.benchTitle}>EYES ON THE ICE</Text><Text style={styles.benchCopy}>Start a shift as the player steps over the boards.</Text></View>}
+        ))}</View></> : <View style={styles.benchMessage}><Text style={styles.benchTitle}>EYES ON THE ICE</Text><Text style={styles.benchCopy}>Start a shift as the player steps over the boards.</Text></View>}
+        <Pressable onPress={() => openPenalty()} style={styles.penaltyButton}><Text style={styles.penaltyText}>PENALTY</Text><Text style={styles.penaltyHint}>{activeShift ? 'ENDS SHIFT · ADD PIM' : 'ADD PIM FROM THE BENCH'}</Text></Pressable>
 
         <ActionButton label={activeShift ? 'END SHIFT' : 'START SHIFT'} tone={activeShift ? 'red' : 'green'} onPress={toggleShift} style={styles.shiftButton} />
         <View style={styles.utilityRow}>
@@ -105,6 +144,7 @@ export function LiveGameScreen(props: Props) {
       </ScrollView>
       {flash ? <View style={[styles.toast, { bottom: insets.bottom + 16 }]}><Text style={styles.toastText}>{flash.replace('_', ' ')} RECORDED</Text><Pressable onPress={props.onUndo}><Text style={styles.toastUndo}>UNDO</Text></Pressable></View> : null}
       <StatGuideModal visible={helpOpen} onClose={() => setHelpOpen(false)} />
+      <PenaltyModal visible={penaltyOpen} minorSeconds={game.minorPenaltySeconds} onCancel={() => { setPenaltyOpen(false); setPenaltyContext(null); }} onSubmit={submitPenalty} />
     </View>
   );
 }
@@ -131,6 +171,12 @@ const styles = StyleSheet.create({
   clockControl: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   clockDot: { width: 7, height: 7, borderRadius: 4 },
   clockControlText: { color: colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
+  cameraMode: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.blueDeep, backgroundColor: '#0B2633' },
+  cameraIcon: { width: 35, height: 26, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: colors.blue },
+  cameraLens: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.ink, borderWidth: 2, borderColor: colors.ice },
+  cameraTitle: { color: colors.ice, fontSize: 11, fontWeight: '900', letterSpacing: 1 },
+  cameraCopy: { color: colors.muted, fontSize: 9, marginTop: 3 },
+  cameraOpen: { color: colors.blue, fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
   statusPanel: { minHeight: 88, borderRadius: radius.lg, borderWidth: 1, padding: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   statusBench: { backgroundColor: colors.surface, borderColor: colors.lineSoft },
   statusOn: { backgroundColor: '#0C2B25', borderColor: colors.greenDeep },
@@ -145,6 +191,9 @@ const styles = StyleSheet.create({
   eventText: { color: colors.ice, fontSize: 13, fontWeight: '900', letterSpacing: 1 },
   eventSymbol: { fontSize: 27 },
   eventCount: { color: colors.mutedDim, fontSize: 13, fontWeight: '900' },
+  penaltyButton: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.redDeep, backgroundColor: '#28161D' },
+  penaltyText: { color: colors.red, fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  penaltyHint: { color: colors.muted, fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
   benchMessage: { minHeight: 142, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
   benchTitle: { color: colors.ice, fontSize: 15, fontWeight: '900', letterSpacing: tracking.label },
   benchCopy: { color: colors.muted, fontSize: 12, marginTop: spacing.sm, textAlign: 'center' },

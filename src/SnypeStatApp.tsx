@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { NeuroPuckBrand } from './components/NeuroPuckBrand';
 import { colors } from './design/tokens';
 import { EMPTY_DATA, loadData, saveData } from './data/storage';
-import { AppData, EventType, Game, Player, Shift } from './domain/models';
+import { AppData, CameraSettings, DEFAULT_CAMERA_SETTINGS, EventType, Game, GamePenalty, PenaltyType, Player, Shift, ShiftVideo } from './domain/models';
 import { effectiveClock } from './domain/stats';
 import { GameSummaryScreen } from './screens/GameSummaryScreen';
 import { GameReviewScreen } from './screens/GameReviewScreen';
@@ -59,7 +59,7 @@ export function SnypeStatApp() {
       clockStartedAt: null,
       clockStartedFromSeconds: input.periodLengthSeconds,
       periodClockSeconds: { 1: input.periodLengthSeconds },
-      shifts: [], events: [], status: 'live', ourScore: 0, opponentScore: 0, notes: '', createdAt: now, completedAt: null
+      shifts: [], events: [], penalties: [], cameraSettings: { ...DEFAULT_CAMERA_SETTINGS }, status: 'live', ourScore: 0, opponentScore: 0, notes: '', createdAt: now, completedAt: null
     };
     setData((current) => ({ ...current, games: [...current.games, game], activeGameId: game.id }));
     setRoute({ name: 'live', gameId: game.id });
@@ -103,25 +103,34 @@ export function SnypeStatApp() {
       shifts: closeOpenShift(current.shifts, now, 0)
     };
   });
-  const toggleShift = (game: Game) => updateGame(game.id, (current) => {
-    const now = Date.now();
-    const clock = effectiveClock(current, now);
-    const active = current.shifts.find((shift) => shift.endTimestamp == null);
-    if (active) return { ...current, shifts: current.shifts.map((shift) => shift.id === active.id ? { ...shift, endGameSeconds: clock, endTimestamp: now, durationSeconds: Math.max(0, Math.round((now - shift.startTimestamp) / 1000)) } : shift) };
-    const shift: Shift = { id: `shift-${now}`, period: current.currentPeriod, startGameSeconds: clock, endGameSeconds: null, startTimestamp: now, endTimestamp: null, durationSeconds: null, rating: 'unrated' };
+  const toggleShift = (game: Game) => {
+    const active = game.shifts.find((shift) => shift.endTimestamp == null);
+    if (active) endShift(game, Date.now());
+    else startShift(game, `shift-${Date.now()}`, Date.now(), null);
+  };
+  const startShift = (game: Game, shiftId: string, startedAt: number, videoRecordingStartedAt: number | null) => updateGame(game.id, (current) => {
+    if (current.shifts.some((shift) => shift.endTimestamp == null)) return current;
+    const clock = effectiveClock(current, startedAt);
+    const shift: Shift = { id: shiftId, period: current.currentPeriod, startGameSeconds: clock, endGameSeconds: null, startTimestamp: startedAt, endTimestamp: null, durationSeconds: null, rating: 'unrated', videoRecordingStartedAt, video: null };
     return { ...current, shifts: [...current.shifts, shift] };
+  });
+  const endShift = (game: Game, endedAt: number) => updateGame(game.id, (current) => {
+    const clock = effectiveClock(current, endedAt);
+    const active = current.shifts.find((shift) => shift.endTimestamp == null);
+    if (!active) return current;
+    return { ...current, shifts: current.shifts.map((shift) => shift.id === active.id ? { ...shift, endGameSeconds: clock, endTimestamp: endedAt, durationSeconds: Math.max(0, Math.round((endedAt - shift.startTimestamp) / 1000)) } : shift) };
   });
   const recordEvent = (game: Game, type: EventType) => updateGame(game.id, (current) => {
     const now = Date.now();
     const active = current.shifts.find((shift) => shift.endTimestamp == null);
-    return { ...current, events: [...current.events, { id: `event-${now}-${type}`, type, period: current.currentPeriod, gameSeconds: effectiveClock(current, now), shiftId: active?.id ?? null, timestamp: now, source: 'live' }] };
+    return { ...current, events: [...current.events, { id: `event-${now}-${type}`, type, period: current.currentPeriod, gameSeconds: effectiveClock(current, now), shiftId: active?.id ?? null, timestamp: now, source: 'live', videoOffsetMs: active?.videoRecordingStartedAt != null ? Math.max(0, now - active.videoRecordingStartedAt) : null }] };
   });
   const undo = (game: Game) => updateGame(game.id, (current) => ({ ...current, events: current.events.slice(0, -1) }));
   const deleteEvent = (game: Game, eventId: string) => updateGame(game.id, (current) => ({ ...current, events: current.events.filter((event) => event.id !== eventId) }));
   const adjustEvent = (game: Game, type: EventType, delta: 1 | -1) => updateGame(game.id, (current) => {
     if (delta === 1) {
       const now = Date.now();
-      return { ...current, events: [...current.events, { id: `event-${now}-${type}-edit`, type, period: current.currentPeriod, gameSeconds: null, shiftId: null, timestamp: now, source: 'manual' }] };
+      return { ...current, events: [...current.events, { id: `event-${now}-${type}-edit`, type, period: current.currentPeriod, gameSeconds: null, shiftId: null, timestamp: now, source: 'manual', videoOffsetMs: null }] };
     }
     let index = -1;
     for (let i = current.events.length - 1; i >= 0; i -= 1) {
@@ -129,6 +138,24 @@ export function SnypeStatApp() {
     }
     return index < 0 ? current : { ...current, events: current.events.filter((_, eventIndex) => eventIndex !== index) };
   });
+  const attachShiftVideo = (game: Game, shiftId: string, video: ShiftVideo) => updateGame(game.id, (current) => ({ ...current, shifts: current.shifts.map((shift) => shift.id === shiftId ? { ...shift, videoRecordingStartedAt: video.startedAt, video } : shift) }));
+  const markRecordingFailed = (game: Game, shiftId: string) => updateGame(game.id, (current) => ({ ...current, shifts: current.shifts.map((shift) => shift.id === shiftId ? { ...shift, videoRecordingStartedAt: null } : shift) }));
+  const updateCameraSettings = (game: Game, settings: Partial<CameraSettings>) => updateGame(game.id, (current) => ({ ...current, cameraSettings: { ...current.cameraSettings, ...settings } }));
+  const recordPenalty = (game: Game, penalty: Omit<GamePenalty, 'id'>) => updateGame(game.id, (current) => ({ ...current, penalties: [...current.penalties, { ...penalty, id: `penalty-${penalty.timestamp}-${penalty.type}` }] }));
+  const adjustPim = (game: Game, deltaSeconds: 30 | -30) => updateGame(game.id, (current) => {
+    if (deltaSeconds > 0) {
+      const now = Date.now();
+      const penalty: GamePenalty = { id: `penalty-${now}-manual`, type: 'CUSTOM', assessedSeconds: 30, ejected: false, period: current.currentPeriod, gameSeconds: null, shiftId: null, timestamp: now, source: 'manual', videoOffsetMs: null };
+      return { ...current, penalties: [...current.penalties, penalty] };
+    }
+    const penalties = [...current.penalties];
+    const last = penalties[penalties.length - 1];
+    if (!last) return current;
+    if (last.assessedSeconds <= 30) penalties.pop();
+    else penalties[penalties.length - 1] = { ...last, assessedSeconds: last.assessedSeconds - 30 };
+    return { ...current, penalties };
+  });
+  const deletePenalty = (game: Game, penaltyId: string) => updateGame(game.id, (current) => ({ ...current, penalties: current.penalties.filter((penalty) => penalty.id !== penaltyId) }));
   const finish = (game: Game, atPeriodEnd = false) => {
     const now = Date.now();
     updateGame(game.id, (current) => {
@@ -152,9 +179,9 @@ export function SnypeStatApp() {
   if (route.name === 'new-game') return <NewGameScreen onBack={() => setRoute({ name: 'home' })} onStart={createGame} suggestedTournament={suggestedTournament} previousOpponents={previousOpponents} />;
   if (route.name === 'season') return <SeasonDashboardScreen player={data.player} games={data.games} onBack={() => setRoute({ name: 'home' })} />;
   if (route.name === 'team-search') return <TeamSearchScreen player={data.player} games={data.games} initialQuery={route.query} onBack={() => setRoute({ name: 'home' })} />;
-  if (route.name === 'live' && activeGame) return <LiveGameScreen game={activeGame} player={data.player} onToggleClock={() => toggleClock(activeGame)} onNextPeriod={() => selectPeriod(activeGame, activeGame.currentPeriod + 1)} onSelectPeriod={(period) => selectPeriod(activeGame, period)} onEndPeriod={() => endPeriod(activeGame)} onToggleShift={() => toggleShift(activeGame)} onEvent={(type) => recordEvent(activeGame, type)} onUndo={() => undo(activeGame)} onReview={() => setRoute({ name: 'review', gameId: activeGame.id, returnTo: 'live' })} onFinish={(atPeriodEnd) => finish(activeGame, atPeriodEnd)} />;
+  if (route.name === 'live' && activeGame) return <LiveGameScreen game={activeGame} player={data.player} onToggleClock={() => toggleClock(activeGame)} onNextPeriod={() => selectPeriod(activeGame, activeGame.currentPeriod + 1)} onSelectPeriod={(period) => selectPeriod(activeGame, period)} onEndPeriod={() => endPeriod(activeGame)} onToggleShift={() => toggleShift(activeGame)} onCameraStartShift={(shiftId, startedAt) => startShift(activeGame, shiftId, startedAt, startedAt)} onCameraEndShift={(endedAt) => endShift(activeGame, endedAt)} onAttachShiftVideo={(shiftId, video) => attachShiftVideo(activeGame, shiftId, video)} onRecordingFailed={(shiftId) => markRecordingFailed(activeGame, shiftId)} onCameraSettings={(settings) => updateCameraSettings(activeGame, settings)} onPenalty={(penalty) => recordPenalty(activeGame, penalty)} onEvent={(type) => recordEvent(activeGame, type)} onUndo={() => undo(activeGame)} onReview={() => setRoute({ name: 'review', gameId: activeGame.id, returnTo: 'live' })} onFinish={(atPeriodEnd) => finish(activeGame, atPeriodEnd)} />;
   if (route.name === 'summary' && activeGame) return <GameSummaryScreen game={activeGame} player={data.player} onDone={() => setRoute({ name: 'home' })} onReview={() => setRoute({ name: 'review', gameId: activeGame.id, returnTo: 'summary' })} />;
-  if (route.name === 'review' && activeGame) return <GameReviewScreen game={activeGame} onBack={() => route.returnTo === 'live' ? setRoute({ name: 'live', gameId: activeGame.id }) : setRoute({ name: 'summary', gameId: activeGame.id })} onAdjust={(type, delta) => adjustEvent(activeGame, type, delta)} onDelete={(eventId) => deleteEvent(activeGame, eventId)} />;
+  if (route.name === 'review' && activeGame) return <GameReviewScreen game={activeGame} onBack={() => route.returnTo === 'live' ? setRoute({ name: 'live', gameId: activeGame.id }) : setRoute({ name: 'summary', gameId: activeGame.id })} onAdjust={(type, delta) => adjustEvent(activeGame, type, delta)} onAdjustPim={(delta) => adjustPim(activeGame, delta)} onDelete={(eventId) => deleteEvent(activeGame, eventId)} onDeletePenalty={(penaltyId) => deletePenalty(activeGame, penaltyId)} />;
   return <HomeScreen player={data.player} games={data.games} onNewGame={() => setRoute({ name: 'new-game' })} onOpenSeason={() => setRoute({ name: 'season' })} onTeamSearch={(query) => setRoute({ name: 'team-search', query })} onOpenGame={(id) => { const game = data.games.find((item) => item.id === id); if (game?.status === 'live') setRoute({ name: 'live', gameId: id }); else if (game) setRoute({ name: 'summary', gameId: id }); }} />;
 }
 

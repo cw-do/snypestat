@@ -3,13 +3,13 @@
     "name": "SNYPE Stat",
     "slug": "snypestat",
     "scheme": "snypestat",
-    "version": "0.1.2",
-    "orientation": "portrait",
+    "version": "1.0.0",
+    "orientation": "default",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon/snype-stat-icon-v1.png",
     "android": {
       "package": "ai.neuropuck.snypestat",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/snype-stat-icon-v1.png",
         "backgroundColor": "#071018"
@@ -38,7 +38,17 @@
             "backgroundColor": "#071018"
           }
         }
-      ]
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow SNYPE Stat to record the player's shifts.",
+          "microphonePermission": "Allow SNYPE Stat to include rink audio in shift videos.",
+          "recordAudioAndroid": true,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": false

@@ -1,6 +1,22 @@
 export type Position = 'Defense' | 'Forward' | 'Goalie';
 export type HomeAway = 'home' | 'away';
 export type ShiftRating = 'good' | 'neutral' | 'poor' | 'unrated';
+export type CameraRatio = '16:9' | '4:3';
+export type PenaltyType = 'MINOR' | 'DOUBLE_MINOR' | 'MAJOR' | 'MISCONDUCT' | 'GAME_MISCONDUCT' | 'MAJOR_GAME' | 'CUSTOM';
+
+export type CameraSettings = {
+  enabled: boolean;
+  ratio: CameraRatio;
+  zoom: number;
+  audioEnabled: boolean;
+};
+
+export const DEFAULT_CAMERA_SETTINGS: CameraSettings = {
+  enabled: false,
+  ratio: '16:9',
+  zoom: 0,
+  audioEnabled: true
+};
 
 export const EVENT_TYPES = [
   'GOAL',
@@ -34,6 +50,20 @@ export type Shift = {
   endTimestamp: number | null;
   durationSeconds: number | null;
   rating: ShiftRating;
+  videoRecordingStartedAt: number | null;
+  video: ShiftVideo | null;
+};
+
+export type ShiftVideo = {
+  id: string;
+  uri: string;
+  startedAt: number;
+  endedAt: number;
+  durationSeconds: number;
+  ratio: CameraRatio;
+  zoom: number;
+  audioEnabled: boolean;
+  storage: 'document' | 'cache';
 };
 
 export type GameEvent = {
@@ -44,6 +74,20 @@ export type GameEvent = {
   shiftId: string | null;
   timestamp: number;
   source: 'live' | 'manual';
+  videoOffsetMs: number | null;
+};
+
+export type GamePenalty = {
+  id: string;
+  type: PenaltyType;
+  assessedSeconds: number;
+  ejected: boolean;
+  period: number;
+  gameSeconds: number | null;
+  shiftId: string | null;
+  timestamp: number;
+  source: 'live' | 'manual';
+  videoOffsetMs: number | null;
 };
 
 export type Game = {
@@ -63,6 +107,9 @@ export type Game = {
   periodClockSeconds: Record<number, number>;
   shifts: Shift[];
   events: GameEvent[];
+  penalties: GamePenalty[];
+  minorPenaltySeconds: number;
+  cameraSettings: CameraSettings;
   status: 'live' | 'complete';
   ourScore: number;
   opponentScore: number;
