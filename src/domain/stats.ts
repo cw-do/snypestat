@@ -9,7 +9,7 @@ export function formatClock(totalSeconds: number): string {
 
 export function effectiveClock(game: Game, now = Date.now()): number {
   if (!game.clockRunning || game.clockStartedAt == null) return game.clockSeconds;
-  const elapsed = Math.floor((now - game.clockStartedAt) / 1000);
+  const elapsed = Math.max(0, Math.floor((now - game.clockStartedAt) / 1000));
   return Math.max(0, game.clockStartedFromSeconds - elapsed);
 }
 
