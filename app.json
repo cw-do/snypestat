@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "SNYPE Stat",
+    "slug": "snypestat",
+    "scheme": "snypestat",
+    "version": "0.1.2",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/icon/snype-stat-icon-v1.png",
+    "android": {
+      "package": "ai.neuropuck.snypestat",
+      "versionCode": 3,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon/snype-stat-icon-v1.png",
+        "backgroundColor": "#071018"
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow SNYPE Stat to suggest the nearest ice rink when setting up a game."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brand/neuropuck-brand.png",
+          "imageWidth": 260,
+          "resizeMode": "contain",
+          "backgroundColor": "#071018",
+          "dark": {
+            "image": "./assets/brand/neuropuck-brand.png",
+            "backgroundColor": "#071018"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3642405a-fde0-440d-b528-7db887261df2"
+      }
+    },
+    "owner": "dokira"
+  }
+}
