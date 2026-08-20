@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActionButton, Card, ScreenHeader } from '../components/ui';
-import { NeuroPuckBrand } from '../components/NeuroPuckBrand';
+import { StatCamBrand } from '../components/StatCamBrand';
 import { colors, radius, spacing, tracking } from '../design/tokens';
 import { Player, Position } from '../domain/models';
 
@@ -29,8 +29,7 @@ export function PlayerSetupScreen({ onSave }: { onSave: (player: Player) => void
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xl }]} keyboardShouldPersistTaps="handled">
-        <View style={styles.brandRow}><View style={styles.brandMark} /><Text style={styles.brand}>SNYPE STAT</Text></View>
-        <NeuroPuckBrand productLine />
+        <StatCamBrand tagline />
         <ScreenHeader eyebrow="First line" title="Build your player card" />
         <Text style={styles.lead}>Set it once. During the game, we keep typing out of your way.</Text>
         <Card style={{ gap: spacing.lg }}>
@@ -66,16 +65,13 @@ function Field({ label, ...props }: FieldProps) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   content: { paddingHorizontal: spacing.lg, gap: spacing.lg },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  brandMark: { width: 5, height: 23, borderRadius: 3, backgroundColor: colors.blue, transform: [{ skewX: '-12deg' }] },
-  brand: { color: colors.ice, fontSize: 13, fontWeight: '900', letterSpacing: tracking.wide },
   lead: { color: colors.muted, fontSize: 15, lineHeight: 22, maxWidth: 320 },
   split: { flexDirection: 'row', gap: spacing.md },
   label: { color: colors.muted, fontSize: 10, fontWeight: '900', letterSpacing: tracking.label, marginBottom: spacing.sm, textTransform: 'uppercase' },
   input: { height: 54, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkRaised, color: colors.ice, fontSize: 17, fontWeight: '700', paddingHorizontal: spacing.lg },
   segmentRow: { flexDirection: 'row', gap: spacing.sm },
   segment: { flex: 1, height: 46, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  segmentActive: { borderColor: colors.blue, backgroundColor: '#103344' },
+  segmentActive: { borderColor: colors.blue, backgroundColor: colors.blueSurface },
   segmentText: { color: colors.muted, fontSize: 12, fontWeight: '800' },
   segmentTextActive: { color: colors.blue },
   offline: { color: colors.mutedDim, textAlign: 'center', fontSize: 11, fontWeight: '700' }

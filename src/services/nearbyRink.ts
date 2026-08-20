@@ -40,7 +40,7 @@ export async function suggestNearestIceRink(): Promise<RinkSuggestionResult> {
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-          'User-Agent': 'SNYPEStat/0.1'
+          'User-Agent': 'StatCamHockey/2.0'
         },
         body: `data=${encodeURIComponent(query)}`,
         signal: controller.signal

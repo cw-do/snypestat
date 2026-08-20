@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "SNYPE Stat",
+    "name": "StatCam Hockey",
     "slug": "snypestat",
-    "scheme": "snypestat",
-    "version": "1.0.3",
+    "scheme": "statcamhockey",
+    "version": "2.0.0",
     "orientation": "default",
     "userInterfaceStyle": "dark",
-    "icon": "./assets/icon/snype-stat-icon-v1.png",
+    "icon": "./assets/icon/logo_statcamHockey.png",
     "android": {
       "package": "ai.neuropuck.snypestat",
-      "versionCode": 7,
+      "versionCode": 8,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon/snype-stat-icon-v1.png",
-        "backgroundColor": "#071018"
+        "foregroundImage": "./assets/icon/logo_statcamHockey.png",
+        "backgroundColor": "#050D1A"
       },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -23,27 +23,27 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow SNYPE Stat to suggest the nearest ice rink when setting up a game."
+          "locationWhenInUsePermission": "Allow StatCam Hockey to suggest the nearest ice rink when setting up a game."
         }
       ],
       [
         "expo-splash-screen",
         {
-          "image": "./assets/brand/neuropuck-brand.png",
-          "imageWidth": 260,
+          "image": "./assets/icon/logo_statcamHockey.png",
+          "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#071018",
+          "backgroundColor": "#050D1A",
           "dark": {
-            "image": "./assets/brand/neuropuck-brand.png",
-            "backgroundColor": "#071018"
+            "image": "./assets/icon/logo_statcamHockey.png",
+            "backgroundColor": "#050D1A"
           }
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow SNYPE Stat to record the player's shifts.",
-          "microphonePermission": "Allow SNYPE Stat to include rink audio in shift videos.",
+          "cameraPermission": "Allow StatCam Hockey to record the player's shifts.",
+          "microphonePermission": "Allow StatCam Hockey to include rink audio in shift videos.",
           "recordAudioAndroid": true,
           "barcodeScannerEnabled": false
         }

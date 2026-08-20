@@ -40,6 +40,6 @@ const styles = StyleSheet.create({
   term: { paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.lineSoft },
   termName: { color: colors.ice, fontSize: 13, fontWeight: '900' },
   definition: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
-  done: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: spacing.md, borderRadius: radius.md, backgroundColor: '#103747', borderWidth: 1, borderColor: colors.blueDeep },
+  done: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: spacing.md, borderRadius: radius.md, backgroundColor: colors.blueSurface, borderWidth: 1, borderColor: colors.blueDeep },
   doneText: { color: colors.blue, fontSize: 10, fontWeight: '900', letterSpacing: tracking.label }
 });

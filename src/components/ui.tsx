@@ -38,7 +38,7 @@ type ActionButtonProps = {
 
 export function ActionButton({ label, onPress, tone = 'ice', disabled, style }: ActionButtonProps) {
   const gradients = {
-    ice: ['#73E3FF', '#31B9E3'] as const,
+    ice: ['#75D2FF', '#2F87F2'] as const,
     green: ['#54EDB0', '#20B67E'] as const,
     red: ['#FF7782', '#D93D4D'] as const,
     ghost: [colors.surfaceHigh, colors.surface] as const

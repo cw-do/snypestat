@@ -1,6 +1,8 @@
-# SNYPE Stat
+# StatCam Hockey
 
-Mobile-first, offline hockey shift and individual stat tracker for Android. This repository is a new app; `../snypemobile` was used only as visual reference.
+Mobile-first, offline hockey shift-film and individual stat tracker for Android. Record the shifts that matter, bookmark live events, and review game development without taking your eyes off the ice.
+
+The Android application ID and local storage namespace temporarily retain their legacy values so existing preview installations can update without losing local game data. They are not part of the StatCam Hockey product identity.
 
 ## Run on Android
 

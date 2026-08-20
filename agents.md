@@ -1036,38 +1036,11 @@ Design the time/event data model so this is possible later.
 
 ---
 
-# 30. Future Feature: NeuroPuck Integration
+# 30. Future Feature: Training Ecosystem Integration
 
-This project may eventually integrate with NeuroPuck training software.
+StatCam Hockey may eventually export user-selected game insights to independent training tools.
 
-Concept:
-
-```text
-GAME PERFORMANCE
-       ↓
-WEAKNESS IDENTIFICATION
-       ↓
-TRAINING RECOMMENDATION
-       ↓
-NEUROPUCK DRILLS
-```
-
-Example:
-
-```text
-Game Analysis
-
-Zone Exit Success
-58%
-
-Development Area:
-Puck decisions under forecheck
-
-Recommended Drill:
-Pressure Read / Outlet Pass
-```
-
-Do not implement NeuroPuck integration in the MVP, but avoid architectural decisions that would make this difficult later.
+Keep the event and shift-film model portable, but do not add a vendor-specific training integration in the MVP.
 
 ---
 

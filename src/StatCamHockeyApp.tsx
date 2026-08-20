@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, BackHandler, StyleSheet, View } from 'react-native';
-import { NeuroPuckBrand } from './components/NeuroPuckBrand';
+import { StatCamBrand } from './components/StatCamBrand';
 import { colors } from './design/tokens';
 import { EMPTY_DATA, loadData, saveData } from './data/storage';
 import { AppData, CameraSettings, DEFAULT_CAMERA_SETTINGS, EventType, Game, GamePenalty, PenaltyType, Player, Shift, ShiftVideo } from './domain/models';
@@ -23,7 +23,7 @@ type Route =
   | { name: 'summary'; gameId: string }
   | { name: 'review'; gameId: string; returnTo: 'live' | 'summary' };
 
-export function SnypeStatApp() {
+export function StatCamHockeyApp() {
   const [data, setData] = useState<AppData>(EMPTY_DATA);
   const [loaded, setLoaded] = useState(false);
   const [route, setRoute] = useState<Route>({ name: 'home' });
@@ -61,7 +61,7 @@ export function SnypeStatApp() {
     return () => subscription.remove();
   }, [activeGame?.cameraSettings.enabled, data.player, loaded, route]);
 
-  if (!loaded) return <View style={styles.loading}><NeuroPuckBrand productLine /><ActivityIndicator color={colors.blue} size="small" /></View>;
+  if (!loaded) return <View style={styles.loading}><StatCamBrand tagline /><ActivityIndicator color={colors.blue} size="small" /></View>;
   if (!data.player) return <PlayerSetupScreen onSave={(player: Player) => setData((current) => ({ ...current, player }))} />;
 
   const createGame = (input: NewGameInput) => {

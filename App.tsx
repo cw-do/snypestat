@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { SnypeStatApp } from './src/SnypeStatApp';
+import { StatCamHockeyApp } from './src/StatCamHockeyApp';
 
 export default function App() {
   useEffect(() => {
@@ -11,7 +11,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <SnypeStatApp />
+      <StatCamHockeyApp />
     </SafeAreaProvider>
   );
 }

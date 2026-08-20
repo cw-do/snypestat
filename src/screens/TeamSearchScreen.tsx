@@ -43,7 +43,7 @@ export function TeamSearchScreen({ player, games, initialQuery = '', onBack }: P
         <TextInput value={query} onChangeText={setQuery} placeholder="Nashville Jr Predators 14U AAA" placeholderTextColor={colors.mutedDim} autoCapitalize="words" returnKeyType="search" onSubmitEditing={openTeamSearch} style={styles.input} />
       </View>
       <ActionButton label="FIND ON MYHOCKEY" onPress={openTeamSearch} />
-      <Text style={styles.sourceNote}>Opens official MYHockey results in your browser. SNYPE does not scrape or republish MYHockey data.</Text>
+      <Text style={styles.sourceNote}>Opens official MYHockey results in your browser. StatCam Hockey does not scrape or republish MYHockey data.</Text>
 
       {recentOpponents.length ? <><Text style={styles.section}>RECENT OPPONENTS</Text><View style={styles.chips}>{recentOpponents.map((name) => <Pressable key={name} onPress={() => setQuery(name)} style={[styles.chip, query === name && styles.chipActive]}><Text numberOfLines={1} style={[styles.chipText, query === name && styles.chipTextActive]}>{name}</Text></Pressable>)}</View></> : null}
 
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   section: { color: colors.muted, fontSize: 10, fontWeight: '900', letterSpacing: tracking.wide, marginTop: spacing.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { maxWidth: '100%', minHeight: 38, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface },
-  chipActive: { borderColor: colors.blue, backgroundColor: '#103747' },
+  chipActive: { borderColor: colors.blue, backgroundColor: colors.blueSurface },
   chipText: { color: colors.muted, fontSize: 10, fontWeight: '800' },
   chipTextActive: { color: colors.blue },
   seasonRow: { flexDirection: 'row', gap: spacing.sm },

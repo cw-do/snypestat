@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActionButton, Card, Metric, ScreenHeader } from '../components/ui';
 import { StatGuideModal } from '../components/StatGuideModal';
-import { NeuroPuckBrand } from '../components/NeuroPuckBrand';
+import { StatCamBrand } from '../components/StatCamBrand';
 import { colors, spacing, tracking } from '../design/tokens';
 import { Game, Player } from '../domain/models';
 import { formatClock, summarizeGame, summarizeSeason } from '../domain/stats';
@@ -17,7 +17,7 @@ export function HomeScreen({ player, games, onNewGame, onOpenGame, onOpenSeason,
   const recent = [...games].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3);
   return (
     <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + 100 }]}>
-      <View style={styles.top}><View style={styles.logoMark} /><Text style={styles.logo}>SNYPE STAT</Text><View style={{ flex: 1 }} /><Pressable onPress={() => setGuideOpen(true)} hitSlop={10}><Text style={styles.help}>?  STAT GUIDE</Text></Pressable><View style={styles.offlineDot} /><Text style={styles.offline}>OFFLINE READY</Text></View>
+      <View style={styles.top}><Image source={require('../../assets/icon/logo_statcamHockey.png')} style={styles.logoImage} /><Text style={styles.logo}>STATCAM <Text style={styles.logoAccent}>HOCKEY</Text></Text><View style={{ flex: 1 }} /><Pressable onPress={() => setGuideOpen(true)} hitSlop={10}><Text style={styles.help}>?  STAT GUIDE</Text></Pressable><View style={styles.offlineDot} /><Text style={styles.offline}>OFFLINE READY</Text></View>
       <ScreenHeader eyebrow={player.season} title={player.name.toUpperCase()} action={<View style={styles.number}><Text style={styles.numberText}>#{player.jerseyNumber || '—'}</Text></View>} />
       <Text style={styles.playerMeta}>{player.position.toUpperCase()}{player.teamName ? `  ·  ${player.teamName.toUpperCase()}` : ''}</Text>
       <Pressable onPress={onOpenSeason} style={({ pressed }) => pressed && { opacity: 0.78 }}>
@@ -37,7 +37,7 @@ export function HomeScreen({ player, games, onNewGame, onOpenGame, onOpenSeason,
       {recent.length ? recent.map((game) => <GameRow key={game.id} game={game} onPress={() => onOpenGame(game.id)} onTeamPress={() => onTeamSearch(game.opponent)} />) : (
         <Card style={styles.empty}><Text style={styles.emptyTitle}>READY FOR PUCK DROP</Text><Text style={styles.emptyText}>Your completed games and development trend will appear here.</Text></Card>
       )}
-      <View style={styles.brandFooter}><View style={styles.brandDivider} /><NeuroPuckBrand compact productLine /></View>
+      <View style={styles.brandFooter}><View style={styles.brandDivider} /><StatCamBrand compact tagline /><Text style={styles.copyright}>© {new Date().getFullYear()} STATCAM HOCKEY</Text></View>
       <StatGuideModal visible={guideOpen} onClose={() => setGuideOpen(false)} />
     </ScrollView>
   );
@@ -59,8 +59,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   content: { paddingHorizontal: spacing.lg, gap: spacing.lg },
   top: { flexDirection: 'row', alignItems: 'center' },
-  logoMark: { width: 4, height: 18, borderRadius: 2, backgroundColor: colors.blue, marginRight: 8, transform: [{ skewX: '-12deg' }] },
+  logoImage: { width: 30, height: 30, borderRadius: 8, marginRight: 9 },
   logo: { color: colors.ice, fontSize: 12, fontWeight: '900', letterSpacing: tracking.wide },
+  logoAccent: { color: colors.blue },
   offlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green, marginRight: 6 },
   offline: { color: colors.muted, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   help: { color: colors.blue, fontSize: 9, fontWeight: '900', letterSpacing: 0.8, marginRight: spacing.md },
@@ -89,6 +90,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: spacing.xl },
   emptyTitle: { color: colors.ice, fontSize: 14, fontWeight: '900', letterSpacing: 1.4 },
   emptyText: { color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: spacing.sm, lineHeight: 18 },
-  brandFooter: { marginTop: spacing.lg, gap: spacing.lg },
-  brandDivider: { height: 1, backgroundColor: colors.lineSoft }
+  brandFooter: { alignItems: 'center', marginTop: spacing.lg, gap: spacing.sm },
+  brandDivider: { alignSelf: 'stretch', height: 1, backgroundColor: colors.lineSoft },
+  copyright: { color: colors.mutedDim, fontSize: 8, fontWeight: '800', letterSpacing: 0.8 }
 });
